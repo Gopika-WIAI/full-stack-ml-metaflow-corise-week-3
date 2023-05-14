@@ -2,6 +2,7 @@ from metaflow import FlowSpec, step
 
 
 class DivideByZeroFlow(FlowSpec):
+    
     @step
     def start(self):
         self.divisors = [0, 1, 2]
@@ -9,7 +10,8 @@ class DivideByZeroFlow(FlowSpec):
 
     @step
     def divide(self):
-        self.res = 10 / self.input  # A
+        import numpy as np
+        self.res = 10 / (self.input + np.finfo(float).eps)  # A
         self.next(self.join)
 
     @step

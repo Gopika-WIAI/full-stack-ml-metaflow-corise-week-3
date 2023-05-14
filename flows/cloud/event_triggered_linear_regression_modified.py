@@ -1,4 +1,4 @@
-from metaflow import FlowSpec, step, card, conda_base, current, Parameter, Flow, trigger
+from metaflow import FlowSpec, step, card, conda_base, current, Parameter, Flow, trigger, retry, timeout
 from metaflow.cards import Markdown, Table, Image, Artifact
 
 URL = "https://outerbounds-datasets.s3.us-west-2.amazonaws.com/taxi/latest.parquet"
@@ -6,7 +6,7 @@ DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 @trigger(events=['s3'])
 @conda_base(libraries={'pandas': '1.4.2', 'pyarrow': '11.0.0', 'numpy': '1.21.2', 'scikit-learn': '1.1.2'})
-class TaxiFarePrediction(FlowSpec):
+class TaxiFarePrediction_modified(FlowSpec):
 
     data_url = Parameter("data_url", default=URL)
 
@@ -26,7 +26,9 @@ class TaxiFarePrediction(FlowSpec):
             df.mta_tax > 0,
             df.tip_amount >= 0,
             df.tolls_amount >= 0,
-            df.total_amount > 0
+            df.total_amount > 0,
+            df.PULocationID !=df.DOLocationID,
+            df.hour > 0
         ]
 
         for f in obviously_bad_data_filters:
@@ -34,7 +36,8 @@ class TaxiFarePrediction(FlowSpec):
 
         
         return df
-
+    @retry(times=4)
+    @timeout(seconds=60)
     @step
     def start(self):
 
@@ -102,4 +105,4 @@ class TaxiFarePrediction(FlowSpec):
 
 
 if __name__ == "__main__":
-    TaxiFarePrediction()
+    TaxiFarePrediction_modified()
